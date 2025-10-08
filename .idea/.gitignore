@@ -1,0 +1,12 @@
+# IntelliJ IDEA project-specific ignores
+
+# Directorios temporales
+/shelf/
+/workspace.xml
+/httpRequests/
+
+# Configuración local que no debería versionarse
+compiler.xml
+encodings.xml
+jarRepositories.xml
+workspace.xml
