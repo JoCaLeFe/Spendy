@@ -1,0 +1,17 @@
+# Maven
+target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# macOS
+.DS_Store
+
+# Logs y temporales
+*.log
+*.tmp
+
+# Compilados de Java
+*.class
