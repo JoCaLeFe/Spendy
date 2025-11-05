@@ -5,28 +5,33 @@ import java.time.LocalDate;
 
 public class TransactionCreateDTO {
 
-    @NotBlank
-    private String type; // INCOME | EXPENSE
+    @NotBlank(message = "El tipo es requerido")
+    @Pattern(regexp = "INCOME|EXPENSE", message = "type debe ser INCOME o EXPENSE")
+    private String type;
 
-    @Positive
-    private double amount;
+    @NotNull(message = "El amount es requerido")
+    @DecimalMin(value = "0.01", message = "El amount debe ser > 0")
+    private Double amount;
 
-    @NotBlank
-    private String currency; // EUR
+    @NotBlank(message = "La moneda es requerida")
+    @Size(min = 3, max = 3, message = "La moneda debe tener 3 letras (ISO-4217, p.e. EUR)")
+    private String currency;
 
-    @NotBlank
+    @NotBlank(message = "categoryId es requerido")
     private String categoryId;
 
-    @NotBlank
-    private String method; // CASH | CARD
+    @NotBlank(message = "El método es requerido")
+    @Pattern(regexp = "CASH|CARD", message = "method debe ser CASH o CARD")
+    private String method;
 
-    @NotNull
+    @NotNull(message = "La fecha es requerida")
     private LocalDate date;
 
+    @Size(max = 140, message = "La nota no debe exceder 140 caracteres")
     private String note;
 
     public String getType() { return type; }
-    public double getAmount() { return amount; }
+    public Double getAmount() { return amount; }
     public String getCurrency() { return currency; }
     public String getCategoryId() { return categoryId; }
     public String getMethod() { return method; }
@@ -34,7 +39,7 @@ public class TransactionCreateDTO {
     public String getNote() { return note; }
 
     public void setType(String type) { this.type = type; }
-    public void setAmount(double amount) { this.amount = amount; }
+    public void setAmount(Double amount) { this.amount = amount; }
     public void setCurrency(String currency) { this.currency = currency; }
     public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
     public void setMethod(String method) { this.method = method; }
