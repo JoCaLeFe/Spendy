@@ -1,6 +1,7 @@
 package com.spendy.backend.controller;
 
 import com.spendy.backend.dto.TransactionCreateDTO;
+import com.spendy.backend.exception.ResourceNotFoundException;
 import com.spendy.backend.model.Transaction;
 import com.spendy.backend.repository.CategoryRepository;
 import com.spendy.backend.repository.TransactionRepository;
@@ -56,19 +57,18 @@ public class TransactionController {
         );
     }
 
-    // 🔹 GET por id (útil para el cliente)
+    // 🔹 GET por id (404 uniforme con excepción)
     @GetMapping("/{id}")
-    public ResponseEntity<Transaction> getById(@PathVariable String id) {
+    public Transaction getById(@PathVariable String id) {
         return transactionRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Transacción", id));
     }
 
     // 🟢 POST: crear transacción
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody TransactionCreateDTO dto) {
         if (!categoryRepository.existsById(dto.getCategoryId())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Category not found"));
+            return ResponseEntity.badRequest().body(Map.of("error", "La categoría no existe"));
         }
 
         Transaction transaction = new Transaction(
@@ -94,8 +94,8 @@ public class TransactionController {
             @PathVariable String id,
             @RequestBody List<Map<String, Object>> ops) {
 
-        var currentOpt = transactionRepository.findById(id);
-        if (currentOpt.isEmpty()) return ResponseEntity.notFound().build();
+        Transaction current = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transacción", id));
 
         // Solo permitimos modificar estos campos
         var allowed = Set.of("/note", "/method", "/date", "/amount", "/categoryId");
@@ -103,19 +103,21 @@ public class TransactionController {
             Object p = op.get("path");
             return !(p instanceof String s) || !allowed.contains(s);
         });
-        if (badPath)
-            return ResponseEntity.badRequest().body(Map.of("error", "Invalid patch path"));
+        if (badPath) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ruta de patch inválida"));
+        }
 
         try {
-            Transaction current = currentOpt.get();
             Transaction patched = patchUtils.applyPatch(current, ops);
 
-            if (patched.getAmount() <= 0)
-                return ResponseEntity.badRequest().body(Map.of("error", "Amount must be > 0"));
+            if (patched.getAmount() <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El monto debe ser mayor que 0"));
+            }
 
             if (patched.getCategoryId() != null &&
-                    !categoryRepository.existsById(patched.getCategoryId()))
-                return ResponseEntity.badRequest().body(Map.of("error", "Category not found"));
+                    !categoryRepository.existsById(patched.getCategoryId())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "La categoría no existe"));
+            }
 
             return ResponseEntity.ok(transactionRepository.save(patched));
 
