@@ -1,5 +1,6 @@
 package com.spendy.backend.controller;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import com.spendy.backend.dto.TransactionCreateDTO;
 import com.spendy.backend.exception.ResourceNotFoundException;
 import com.spendy.backend.model.Transaction;
@@ -39,7 +40,7 @@ public class TransactionController {
         this.queryService = queryService;
     }
 
-    // 🔎 GET con filtros + paginación
+    // 🔎 GET con filtros + paginación (vista resumida)
     @GetMapping
     public Page<Transaction> search(
             @RequestParam Optional<LocalDate> from,
@@ -57,15 +58,17 @@ public class TransactionController {
         );
     }
 
-    // 🔹 GET por id (404 uniforme con excepción)
+    // 🔹 GET por id (vista detalle)
     @GetMapping("/{id}")
+    @JsonView(Transaction.ViewDetail.class)
     public Transaction getById(@PathVariable String id) {
         return transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transacción", id));
     }
 
-    // 🟢 POST: crear transacción
+    // 🟢 POST: crear transacción (vista detalle)
     @PostMapping
+    @JsonView(Transaction.ViewDetail.class)
     public ResponseEntity<?> create(@Valid @RequestBody TransactionCreateDTO dto) {
         if (!categoryRepository.existsById(dto.getCategoryId())) {
             return ResponseEntity.badRequest().body(Map.of("error", "La categoría no existe"));
@@ -88,8 +91,9 @@ public class TransactionController {
                 .body(saved);
     }
 
-    // 🟣 PATCH: actualización parcial con JSON-Patch
+    // 🟣 PATCH: actualización parcial con JSON-Patch (vista detalle)
     @PatchMapping(value = "/{id}", consumes = "application/json-patch+json")
+    @JsonView(Transaction.ViewDetail.class)
     public ResponseEntity<?> patchTransaction(
             @PathVariable String id,
             @RequestBody List<Map<String, Object>> ops) {

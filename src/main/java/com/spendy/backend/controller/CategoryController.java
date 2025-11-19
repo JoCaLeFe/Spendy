@@ -1,5 +1,6 @@
 package com.spendy.backend.controller;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import com.spendy.backend.dto.CategoryCreateDTO;
 import com.spendy.backend.exception.ResourceNotFoundException;
 import com.spendy.backend.model.Category;
@@ -26,21 +27,24 @@ public class CategoryController {
         this.patchUtils = patchUtils;
     }
 
-    // ✅ Obtener todas las categorías
+    // ✅ Obtener todas las categorías (vista resumida)
     @GetMapping
+    @JsonView(Category.ViewList.class)
     public List<Category> getAll() {
         return repo.findAll();
     }
 
-    // ✅ Obtener categoría por ID (usa excepción 404 uniforme)
+    // ✅ Obtener categoría por ID (vista detalle)
     @GetMapping("/{id}")
+    @JsonView(Category.ViewDetail.class)
     public Category getById(@PathVariable String id) {
         return repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría", id));
     }
 
-    // ✅ Crear nueva categoría
+    // ✅ Crear nueva categoría (devuelve detalle)
     @PostMapping
+    @JsonView(Category.ViewDetail.class)
     public ResponseEntity<?> create(@Valid @RequestBody CategoryCreateDTO dto) {
         if (repo.existsByNameIgnoreCase(dto.getName())) {
             return ResponseEntity.badRequest().body(Map.of("error", "La categoría ya existe"));
@@ -49,8 +53,9 @@ public class CategoryController {
         return ResponseEntity.created(URI.create("/api/categories/" + saved.getId())).body(saved);
     }
 
-    // ✅ PATCH parcial con JSON-Patch
+    // ✅ PATCH parcial con JSON-Patch (devuelve detalle)
     @PatchMapping(value = "/{id}", consumes = "application/json-patch+json")
+    @JsonView(Category.ViewDetail.class)
     public ResponseEntity<?> patch(@PathVariable String id,
                                    @RequestBody List<Map<String, Object>> ops) {
 
@@ -98,8 +103,9 @@ public class CategoryController {
         }
     }
 
-    // ✅ Búsqueda dinámica con Query By Example
+    // ✅ Búsqueda dinámica con Query By Example (vista resumida)
     @GetMapping("/search")
+    @JsonView(Category.ViewList.class)
     public List<Category> search(
             @RequestParam Optional<String> name,
             @RequestParam Optional<String> color

@@ -1,53 +1,56 @@
 package com.spendy.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
 
 @Document(collection = "transactions")
-// índice compuesto: útil para consultar por rango de fechas y categoría
-@CompoundIndex(name = "date_category_idx", def = "{'date':1, 'categoryId':1}")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Transaction {
 
+    // Vistas
+    public interface ViewList {}
+    public interface ViewDetail extends ViewList {}
+
     @Id
+    @JsonView(ViewList.class)
     private String id;
 
-    @Indexed // permite filtrar rápido por tipo (INCOME/EXPENSE)
-    private String type;
+    @JsonView(ViewList.class)
+    private String type;        // INCOME | EXPENSE
 
+    @JsonView(ViewList.class)
     private double amount;
 
-    private String currency;   // "EUR"
-
-    @Indexed // muy común consultar por categoría
-    private String categoryId;
-
-    @Indexed // index para filtros por método (CASH/CARD)
-    private String method;
-
-    @Indexed // index para filtros o rangos de fecha
+    @JsonView(ViewList.class)
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
 
+    // Solo en detalle:
+    @JsonView(ViewDetail.class)
+    private String currency;
+
+    @JsonView(ViewDetail.class)
+    private String categoryId;
+
+    @JsonView(ViewDetail.class)
+    private String method;      // CASH | CARD
+
+    @JsonView(ViewDetail.class)
     private String note;
 
     public Transaction() {}
-
     public Transaction(String id, String type, double amount, String currency,
                        String categoryId, String method, LocalDate date, String note) {
-        this.id = id;
-        this.type = type;
-        this.amount = amount;
-        this.currency = currency;
-        this.categoryId = categoryId;
-        this.method = method;
-        this.date = date;
-        this.note = note;
+        this.id = id; this.type = type; this.amount = amount; this.currency = currency;
+        this.categoryId = categoryId; this.method = method; this.date = date; this.note = note;
     }
 
-    // getters
+    // Getters
     public String getId() { return id; }
     public String getType() { return type; }
     public double getAmount() { return amount; }
@@ -57,7 +60,7 @@ public class Transaction {
     public LocalDate getDate() { return date; }
     public String getNote() { return note; }
 
-    // setters
+    // Setters
     public void setId(String id) { this.id = id; }
     public void setType(String type) { this.type = type; }
     public void setAmount(double amount) { this.amount = amount; }
