@@ -8,6 +8,7 @@ import com.spendy.backend.repository.CategoryRepository;
 import com.spendy.backend.repository.TransactionRepository;
 import com.spendy.backend.service.PatchUtils;
 import com.spendy.backend.service.TransactionQueryService;
+import com.spendy.backend.service.TransactionCursorService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -29,15 +31,18 @@ public class TransactionController {
     private final CategoryRepository categoryRepository;
     private final PatchUtils patchUtils;
     private final TransactionQueryService queryService;
+    private final TransactionCursorService cursorService;   // 👈 NUEVO
 
     public TransactionController(TransactionRepository transactionRepository,
                                  CategoryRepository categoryRepository,
                                  PatchUtils patchUtils,
-                                 TransactionQueryService queryService) {
+                                 TransactionQueryService queryService,
+                                 TransactionCursorService cursorService) {   // 👈 NUEVO
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.patchUtils = patchUtils;
         this.queryService = queryService;
+        this.cursorService = cursorService;                  // 👈 NUEVO
     }
 
     // 🔎 GET con filtros + paginación (vista resumida)
@@ -56,6 +61,16 @@ public class TransactionController {
         return queryService.search(
                 from, to, categoryId, method, type, minAmount, maxAmount, q, pageable
         );
+    }
+
+    // ✅ NUEVO: paginación por cursor
+    @GetMapping("/cursor")
+    @JsonView(Transaction.ViewList.class)
+    public Map<String, Object> getWithCursor(
+            @RequestParam(required = false) Instant cursor,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        return cursorService.getWithCursor(cursor, limit);
     }
 
     // 🔹 GET por id (vista detalle)
@@ -82,7 +97,8 @@ public class TransactionController {
                 dto.getCategoryId(),
                 dto.getMethod(),
                 dto.getDate(),
-                dto.getNote()
+                dto.getNote(),
+                Instant.now()          // 👈 se fija createdAt al momento de crear
         );
 
         Transaction saved = transactionRepository.save(transaction);

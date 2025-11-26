@@ -44,11 +44,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(body("Solicitud inválida", ex.getMessage(), HttpStatus.BAD_REQUEST, req.getRequestURI()));
     }
-
-    // 500 – cualquier otro error no controlado aquí
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleAny(Exception ex, HttpServletRequest req) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(body("Error interno", ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, req.getRequestURI()));
-    }
 }

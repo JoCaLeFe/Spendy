@@ -6,13 +6,14 @@ import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Document(collection = "transactions")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Transaction {
 
-    // Vistas
+    // -------- Vistas --------
     public interface ViewList {}
     public interface ViewDetail extends ViewList {}
 
@@ -30,7 +31,7 @@ public class Transaction {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
 
-    // Solo en detalle:
+    // -------- Solo en vista de detalle --------
     @JsonView(ViewDetail.class)
     private String currency;
 
@@ -43,14 +44,35 @@ public class Transaction {
     @JsonView(ViewDetail.class)
     private String note;
 
+    // -------- NUEVO: cursor temporal --------
+    @JsonView(ViewDetail.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Instant createdAt;
+
+    // -------- Constructores --------
     public Transaction() {}
-    public Transaction(String id, String type, double amount, String currency,
-                       String categoryId, String method, LocalDate date, String note) {
-        this.id = id; this.type = type; this.amount = amount; this.currency = currency;
-        this.categoryId = categoryId; this.method = method; this.date = date; this.note = note;
+
+    public Transaction(String id,
+                       String type,
+                       double amount,
+                       String currency,
+                       String categoryId,
+                       String method,
+                       LocalDate date,
+                       String note,
+                       Instant createdAt) {
+        this.id = id;
+        this.type = type;
+        this.amount = amount;
+        this.currency = currency;
+        this.categoryId = categoryId;
+        this.method = method;
+        this.date = date;
+        this.note = note;
+        this.createdAt = createdAt;
     }
 
-    // Getters
+    // -------- Getters --------
     public String getId() { return id; }
     public String getType() { return type; }
     public double getAmount() { return amount; }
@@ -59,8 +81,9 @@ public class Transaction {
     public String getMethod() { return method; }
     public LocalDate getDate() { return date; }
     public String getNote() { return note; }
+    public Instant getCreatedAt() { return createdAt; }
 
-    // Setters
+    // -------- Setters --------
     public void setId(String id) { this.id = id; }
     public void setType(String type) { this.type = type; }
     public void setAmount(double amount) { this.amount = amount; }
@@ -69,4 +92,5 @@ public class Transaction {
     public void setMethod(String method) { this.method = method; }
     public void setDate(LocalDate date) { this.date = date; }
     public void setNote(String note) { this.note = note; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }
