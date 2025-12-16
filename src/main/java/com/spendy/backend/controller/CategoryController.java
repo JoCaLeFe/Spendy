@@ -11,13 +11,14 @@ import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.spendy.backend.configuration.ApiPaths;
 
 import java.net.URI;
 import java.util.*;
 import java.util.regex.Pattern;
 
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping(ApiPaths.V1 + "/categories")
 public class CategoryController {
     private final CategoryRepository repo;
     private final PatchUtils patchUtils;
@@ -50,7 +51,14 @@ public class CategoryController {
             return ResponseEntity.badRequest().body(Map.of("error", "La categoría ya existe"));
         }
         Category saved = repo.save(new Category(null, dto.getName(), dto.getColor()));
-        return ResponseEntity.created(URI.create("/api/categories/" + saved.getId())).body(saved);
+
+        URI location = URI.create(
+                ApiPaths.V1 + "/categories/" + saved.getId()
+        );
+
+        return ResponseEntity
+                .created(location)
+                .body(saved);
     }
 
     // ✅ PATCH parcial con JSON-Patch (devuelve detalle)

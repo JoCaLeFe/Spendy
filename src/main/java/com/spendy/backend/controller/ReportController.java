@@ -4,9 +4,10 @@ import com.spendy.backend.dto.MonthlyReportDTO;
 import com.spendy.backend.service.ReportService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.spendy.backend.configuration.ApiPaths;
 
 @RestController
-@RequestMapping("/api/reports")
+@RequestMapping(ApiPaths.V1 + "/reports")
 public class ReportController {
     private final ReportService service;
 

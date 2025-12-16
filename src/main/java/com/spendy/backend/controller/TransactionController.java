@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.spendy.backend.configuration.ApiPaths;
 
 import java.net.URI;
 import java.time.Instant;
@@ -24,7 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/transactions")
+@RequestMapping(ApiPaths.V1 + "/transactions")
 public class TransactionController {
 
     private final TransactionRepository transactionRepository;
@@ -102,8 +103,13 @@ public class TransactionController {
         );
 
         Transaction saved = transactionRepository.save(transaction);
+
+        URI location = URI.create(
+                ApiPaths.V1 + "/transactions/" + saved.getId()
+        );
+
         return ResponseEntity
-                .created(URI.create("/api/transactions/" + saved.getId()))
+                .created(location)
                 .body(saved);
     }
 
