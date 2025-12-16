@@ -6,14 +6,32 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionRepository extends MongoRepository<Transaction, String> {
 
-    List<Transaction> findByDateBetween(LocalDate start, LocalDate end);
+    // =========================
+    // 🔒 AISLAMIENTO POR USUARIO
+    // =========================
 
-    // 👉 Para la primera "página" por cursor: ordenado por createdAt DESC
-    List<Transaction> findAllByOrderByCreatedAtDesc();
+    List<Transaction> findByUserIDAndDateBetween(
+            String userID,
+            LocalDate start,
+            LocalDate end
+    );
 
-    // 👉 Para las siguientes páginas: elementos con createdAt < cursor, también ordenado DESC
-    List<Transaction> findByCreatedAtBeforeOrderByCreatedAtDesc(Instant cursor);
+    Optional<Transaction> findByIdAndUserID(String id, String userID);
+
+    // =========================
+    // 📄 CURSOR PAGINATION
+    // =========================
+
+    // Primera "página"
+    List<Transaction> findByUserIDOrderByCreatedAtDesc(String userID);
+
+    // Páginas siguientes
+    List<Transaction> findByUserIDAndCreatedAtBeforeOrderByCreatedAtDesc(
+            String userID,
+            Instant cursor
+    );
 }

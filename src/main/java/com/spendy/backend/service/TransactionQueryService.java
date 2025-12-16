@@ -25,6 +25,7 @@ public class TransactionQueryService {
     }
 
     public Page<Transaction> search(
+            String userID,
             Optional<LocalDate> from,
             Optional<LocalDate> to,
             Optional<String> categoryId,
@@ -36,6 +37,9 @@ public class TransactionQueryService {
             Pageable pageable
     ) {
         List<Criteria> conditions = new ArrayList<>();
+
+        // 🔒 SIEMPRE filtrar por usuario
+        conditions.add(Criteria.where("userID").is(userID));
 
         // Rango de fechas (en una sola Criteria sobre "date")
         LocalDate f = from.orElse(null);
@@ -65,9 +69,7 @@ public class TransactionQueryService {
         );
 
         Query query = new Query();
-        if (!conditions.isEmpty()) {
-            query.addCriteria(new Criteria().andOperator(conditions.toArray(new Criteria[0])));
-        }
+        query.addCriteria(new Criteria().andOperator(conditions.toArray(new Criteria[0])));
 
         long total = mongo.count(query, Transaction.class);
         query.with(pageable);

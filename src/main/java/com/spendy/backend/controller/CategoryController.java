@@ -7,8 +7,6 @@ import com.spendy.backend.model.Category;
 import com.spendy.backend.repository.CategoryRepository;
 import com.spendy.backend.service.PatchUtils;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.spendy.backend.configuration.ApiPaths;
@@ -16,6 +14,8 @@ import com.spendy.backend.configuration.ApiPaths;
 import java.net.URI;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import static com.spendy.backend.security.util.SecurityUtils.currentUserID;
 
 @RestController
 @RequestMapping(ApiPaths.V1 + "/categories")
@@ -28,46 +28,49 @@ public class CategoryController {
         this.patchUtils = patchUtils;
     }
 
-    // ✅ Obtener todas las categorías (vista resumida)
+    // ✅ Obtener todas las categorías (solo del usuario)
     @GetMapping
     @JsonView(Category.ViewList.class)
     public List<Category> getAll() {
-        return repo.findAll();
+        String userID = currentUserID();
+        return repo.findAllByUserID(userID);
     }
 
-    // ✅ Obtener categoría por ID (vista detalle)
+    // ✅ Obtener categoría por ID (solo del usuario)
     @GetMapping("/{id}")
     @JsonView(Category.ViewDetail.class)
     public Category getById(@PathVariable String id) {
-        return repo.findById(id)
+        String userID = currentUserID();
+        return repo.findByIdAndUserID(id, userID)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría", id));
     }
 
-    // ✅ Crear nueva categoría (devuelve detalle)
+    // ✅ Crear nueva categoría (solo para el usuario)
     @PostMapping
     @JsonView(Category.ViewDetail.class)
     public ResponseEntity<?> create(@Valid @RequestBody CategoryCreateDTO dto) {
-        if (repo.existsByNameIgnoreCase(dto.getName())) {
+        String userID = currentUserID();
+
+        if (repo.existsByUserIDAndNameIgnoreCase(userID, dto.getName())) {
             return ResponseEntity.badRequest().body(Map.of("error", "La categoría ya existe"));
         }
-        Category saved = repo.save(new Category(null, dto.getName(), dto.getColor()));
 
-        URI location = URI.create(
-                ApiPaths.V1 + "/categories/" + saved.getId()
-        );
+        Category saved = repo.save(new Category(null, userID, dto.getName(), dto.getColor()));
 
-        return ResponseEntity
-                .created(location)
-                .body(saved);
+        URI location = URI.create(ApiPaths.V1 + "/categories/" + saved.getId());
+
+        return ResponseEntity.created(location).body(saved);
     }
 
-    // ✅ PATCH parcial con JSON-Patch (devuelve detalle)
+    // ✅ PATCH parcial con JSON-Patch (solo del usuario)
     @PatchMapping(value = "/{id}", consumes = "application/json-patch+json")
     @JsonView(Category.ViewDetail.class)
     public ResponseEntity<?> patch(@PathVariable String id,
                                    @RequestBody List<Map<String, Object>> ops) {
 
-        Category current = repo.findById(id)
+        String userID = currentUserID();
+
+        Category current = repo.findByIdAndUserID(id, userID)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría", id));
 
         // Solo permitimos modificar name y color
@@ -89,9 +92,12 @@ public class CategoryController {
                 if (newName.isEmpty()) {
                     return ResponseEntity.badRequest().body(Map.of("error", "El nombre no puede estar vacío"));
                 }
-                if (!newName.equalsIgnoreCase(current.getName()) && repo.existsByNameIgnoreCase(newName)) {
+
+                if (!newName.equalsIgnoreCase(current.getName())
+                        && repo.existsByUserIDAndNameIgnoreCase(userID, newName)) {
                     return ResponseEntity.status(409).body(Map.of("error", "El nombre de la categoría ya existe"));
                 }
+
                 updated.setName(newName);
             }
 
@@ -105,29 +111,29 @@ public class CategoryController {
                 updated.setColor(c);
             }
 
+            // Asegurar que no se pierda el userID
+            updated.setUserID(userID);
+
             return ResponseEntity.ok(repo.save(updated));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    // ✅ Búsqueda dinámica con Query By Example (vista resumida)
+    // ✅ Búsqueda (por nombre/color) solo del usuario
     @GetMapping("/search")
     @JsonView(Category.ViewList.class)
     public List<Category> search(
             @RequestParam Optional<String> name,
             @RequestParam Optional<String> color
     ) {
-        Category probe = new Category();
-        name.ifPresent(probe::setName);
-        color.ifPresent(probe::setColor);
+        String userID = currentUserID();
 
-        ExampleMatcher matcher = ExampleMatcher.matching()
-                .withIgnoreNullValues()
-                .withMatcher("name", m -> m.contains().ignoreCase())
-                .withMatcher("color", m -> m.ignoreCase());
+        List<Category> all = repo.findAllByUserID(userID);
 
-        Example<Category> example = Example.of(probe, matcher);
-        return repo.findAll(example);
+        return all.stream()
+                .filter(c -> name.map(n -> c.getName() != null && c.getName().toLowerCase().contains(n.toLowerCase())).orElse(true))
+                .filter(c -> color.map(col -> c.getColor() != null && c.getColor().equalsIgnoreCase(col)).orElse(true))
+                .toList();
     }
 }

@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.spendy.backend.security.util.SecurityUtils.currentUserID;
+
 @Service
 public class TransactionCursorService {
 
@@ -19,16 +21,18 @@ public class TransactionCursorService {
     }
 
     /**
-     * Cursor-based pagination:
-     * - Si cursor == null → devuelve las primeras `limit` transacciones.
-     * - Si cursor != null → devuelve transacciones antes del cursor.
+     * Cursor-based pagination (por usuario):
+     * - Si cursor == null → devuelve las primeras `limit` transacciones del usuario.
+     * - Si cursor != null → devuelve transacciones del usuario antes del cursor.
      */
     public Map<String, Object> getWithCursor(Instant cursor, int limit) {
 
+        String userID = currentUserID();
+
         // 1️⃣ Obtener resultados según si viene cursor o no
         List<Transaction> data = (cursor == null)
-                ? repo.findAllByOrderByCreatedAtDesc()
-                : repo.findByCreatedAtBeforeOrderByCreatedAtDesc(cursor);
+                ? repo.findByUserIDOrderByCreatedAtDesc(userID)
+                : repo.findByUserIDAndCreatedAtBeforeOrderByCreatedAtDesc(userID, cursor);
 
         // 2️⃣ Recortar a `limit`
         if (data.size() > limit) {

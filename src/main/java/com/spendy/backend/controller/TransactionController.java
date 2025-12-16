@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.spendy.backend.security.util.SecurityUtils.currentUserID;
+
 @RestController
 @RequestMapping(ApiPaths.V1 + "/transactions")
 public class TransactionController {
@@ -32,21 +34,21 @@ public class TransactionController {
     private final CategoryRepository categoryRepository;
     private final PatchUtils patchUtils;
     private final TransactionQueryService queryService;
-    private final TransactionCursorService cursorService;   // 👈 NUEVO
+    private final TransactionCursorService cursorService;
 
     public TransactionController(TransactionRepository transactionRepository,
                                  CategoryRepository categoryRepository,
                                  PatchUtils patchUtils,
                                  TransactionQueryService queryService,
-                                 TransactionCursorService cursorService) {   // 👈 NUEVO
+                                 TransactionCursorService cursorService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.patchUtils = patchUtils;
         this.queryService = queryService;
-        this.cursorService = cursorService;                  // 👈 NUEVO
+        this.cursorService = cursorService;
     }
 
-    // 🔎 GET con filtros + paginación (vista resumida)
+    // 🔎 GET con filtros + paginación (solo del usuario)
     @GetMapping
     public Page<Transaction> search(
             @RequestParam Optional<LocalDate> from,
@@ -59,12 +61,13 @@ public class TransactionController {
             @RequestParam Optional<String> q,
             Pageable pageable
     ) {
+        String userID = currentUserID();
         return queryService.search(
-                from, to, categoryId, method, type, minAmount, maxAmount, q, pageable
+                userID, from, to, categoryId, method, type, minAmount, maxAmount, q, pageable
         );
     }
 
-    // ✅ NUEVO: paginación por cursor
+    // ✅ paginación por cursor (ya filtra por userID desde el service)
     @GetMapping("/cursor")
     @JsonView(Transaction.ViewList.class)
     public Map<String, Object> getWithCursor(
@@ -74,24 +77,30 @@ public class TransactionController {
         return cursorService.getWithCursor(cursor, limit);
     }
 
-    // 🔹 GET por id (vista detalle)
+    // 🔹 GET por id (solo del usuario)
     @GetMapping("/{id}")
     @JsonView(Transaction.ViewDetail.class)
     public Transaction getById(@PathVariable String id) {
-        return transactionRepository.findById(id)
+        String userID = currentUserID();
+        return transactionRepository.findByIdAndUserID(id, userID)
                 .orElseThrow(() -> new ResourceNotFoundException("Transacción", id));
     }
 
-    // 🟢 POST: crear transacción (vista detalle)
+    // 🟢 POST: crear transacción (solo para el usuario)
     @PostMapping
     @JsonView(Transaction.ViewDetail.class)
     public ResponseEntity<?> create(@Valid @RequestBody TransactionCreateDTO dto) {
-        if (!categoryRepository.existsById(dto.getCategoryId())) {
+        String userID = currentUserID();
+
+        // Validar que la categoría exista y sea del usuario
+        if (dto.getCategoryId() != null &&
+                categoryRepository.findByIdAndUserID(dto.getCategoryId(), userID).isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "La categoría no existe"));
         }
 
         Transaction transaction = new Transaction(
                 null,
+                userID,              // 👈 NUEVO
                 dto.getType(),
                 dto.getAmount(),
                 dto.getCurrency(),
@@ -99,7 +108,7 @@ public class TransactionController {
                 dto.getMethod(),
                 dto.getDate(),
                 dto.getNote(),
-                Instant.now()          // 👈 se fija createdAt al momento de crear
+                Instant.now()
         );
 
         Transaction saved = transactionRepository.save(transaction);
@@ -108,19 +117,19 @@ public class TransactionController {
                 ApiPaths.V1 + "/transactions/" + saved.getId()
         );
 
-        return ResponseEntity
-                .created(location)
-                .body(saved);
+        return ResponseEntity.created(location).body(saved);
     }
 
-    // 🟣 PATCH: actualización parcial con JSON-Patch (vista detalle)
+    // 🟣 PATCH: actualización parcial con JSON-Patch (solo del usuario)
     @PatchMapping(value = "/{id}", consumes = "application/json-patch+json")
     @JsonView(Transaction.ViewDetail.class)
     public ResponseEntity<?> patchTransaction(
             @PathVariable String id,
             @RequestBody List<Map<String, Object>> ops) {
 
-        Transaction current = transactionRepository.findById(id)
+        String userID = currentUserID();
+
+        Transaction current = transactionRepository.findByIdAndUserID(id, userID)
                 .orElseThrow(() -> new ResourceNotFoundException("Transacción", id));
 
         // Solo permitimos modificar estos campos
@@ -140,10 +149,14 @@ public class TransactionController {
                 return ResponseEntity.badRequest().body(Map.of("error", "El monto debe ser mayor que 0"));
             }
 
+            // Validar que la categoría exista y sea del usuario
             if (patched.getCategoryId() != null &&
-                    !categoryRepository.existsById(patched.getCategoryId())) {
+                    categoryRepository.findByIdAndUserID(patched.getCategoryId(), userID).isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "La categoría no existe"));
             }
+
+            // Asegurar ownership
+            patched.setUserID(userID);
 
             return ResponseEntity.ok(transactionRepository.save(patched));
 
