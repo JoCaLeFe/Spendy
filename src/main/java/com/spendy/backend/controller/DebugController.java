@@ -5,9 +5,13 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import com.spendy.backend.configuration.ApiPaths;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.Hidden;
+
+@Hidden
 @RestController
 @RequestMapping(ApiPaths.V1 + "/debug")
 public class DebugController {
+
     private final MongoTemplate mongo;
     public DebugController(MongoTemplate mongo) { this.mongo = mongo; }
 

@@ -6,9 +6,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.spendy.backend.configuration.ApiPaths;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+@SecurityRequirement(name = "bearerAuth")
+@Tag(name = "Reports", description = "Reportes y resúmenes (balance mensual, totales)")
 @RestController
 @RequestMapping(ApiPaths.V1 + "/reports")
 public class ReportController {
+
     private final ReportService service;
 
     public ReportController(ReportService service) { this.service = service; }

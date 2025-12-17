@@ -23,7 +23,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**", "/api/health").permitAll()
+                        .requestMatchers(
+                                "/api/v1/auth/**",
+                                "/api/health",
+
+                                // ✅ Swagger UI + OpenAPI docs
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/api-docs/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(b -> b.disable())

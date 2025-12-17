@@ -10,14 +10,19 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import com.spendy.backend.configuration.ApiPaths;
 
 import java.util.Map;
 import java.util.Set;
 
-import static com.spendy.backend.configuration.ApiPaths.V1;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+@Tag(name = "Auth", description = "Registro y login con JWT")
 @RestController
-@RequestMapping(V1 + "/auth")
+@RequestMapping(ApiPaths.V1 + "/auth")
 public class AuthController {
 
     private final UserRepository userRepo;
@@ -42,6 +47,11 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Usuario registrado"));
     }
 
+    @Operation(summary = "Login", description = "Devuelve un JWT para autenticar peticiones posteriores.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login exitoso, devuelve accessToken"),
+            @ApiResponse(responseCode = "401", description = "Credenciales inválidas")
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody AuthLoginDTO dto) {
         User user = userRepo.findByEmailIgnoreCase(dto.getEmail())

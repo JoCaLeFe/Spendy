@@ -15,11 +15,18 @@ import java.net.URI;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import static com.spendy.backend.security.util.SecurityUtils.currentUserID;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+@SecurityRequirement(name = "bearerAuth")
+@Tag(name = "Categories", description = "Gestión de categorías del usuario")
 @RestController
 @RequestMapping(ApiPaths.V1 + "/categories")
 public class CategoryController {
+
     private final CategoryRepository repo;
     private final PatchUtils patchUtils;
 

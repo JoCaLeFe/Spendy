@@ -24,8 +24,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import static com.spendy.backend.security.util.SecurityUtils.currentUserID;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+@SecurityRequirement(name = "bearerAuth")
+@Tag(name = "Transactions", description = "Gestión de transacciones (ingresos y gastos)")
 @RestController
 @RequestMapping(ApiPaths.V1 + "/transactions")
 public class TransactionController {

@@ -3,6 +3,9 @@ package com.spendy.backend.controller;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.Hidden;
+
+@Hidden
 @RestController
 @RequestMapping("/api/health")
 public class HealthController {
